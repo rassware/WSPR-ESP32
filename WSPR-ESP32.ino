@@ -11,16 +11,18 @@
 #include <TimeLib.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <credentials.h>
 
-#include <Adafruit_SI5351.h>
+#include <si5351.h>
 
-Adafruit_SI5351 clockgen = Adafruit_SI5351();
+Si5351 si5351;
 
-#define TONE_SPACING            1.46           // ~1.46 Hz
-#define WSPR_CTC                10672         // CTC value for WSPR
+#define TONE_SPACING            146               // ~1.46 Hz
+#define WSPR_DELAY              683               // Delay value for WSPR
+#define WSPR_CTC                10672             // CTC value for WSPR
 #define SYMBOL_COUNT            WSPR_SYMBOL_COUNT
-#define CORRECTION              350            // Freq Correction in HZ
-
+#define CORRECTION              0                 // Freq Correction in Hz
+#define TX_LED_PIN              2                 // integrated onboard led
 
 
 
@@ -28,36 +30,25 @@ Adafruit_SI5351 clockgen = Adafruit_SI5351();
 hw_timer_t * timer = NULL;
 
 // WiFi network name and password:
-const char * networkName = "xxxxxxxxxxx";
-const char * networkPswd = "xxxxxxxxxxx";
+const char * networkName = WIFI_SSID;
+const char * networkPswd = WIFI_PASSWD;
 
 
 JTEncode jtencode;
-unsigned long freq =  14097100UL + CORRECTION;              // Change this
-char call[7] = "NOCALL";                        // Change this
-char loc[5] = "FM05";                           // Change this
+unsigned long freq =  28124900UL;
+char call[6] = "DL2RN";
+char loc[5] = "JN68";
 uint8_t dbm = 10;
 uint8_t tx_buffer[SYMBOL_COUNT];
 
-boolean connected = false;
-volatile bool proceed = false;
 // NTP Servers:
-IPAddress timeServer(132, 163, 4, 101); // time-a.timefreq.bldrdoc.gov
-// IPAddress timeServer(132, 163, 4, 102); // time-b.timefreq.bldrdoc.gov
-// IPAddress timeServer(132, 163, 4, 103); // time-c.timefreq.bldrdoc.gov
+IPAddress timeServer(185, 255, 121, 15);
 
 WiFiUDP udp;
 
-const int timeZone = -5;     // Central European Time
-//const int timeZone = -5;  // Eastern Standard Time (USA)
-//const int timeZone = -4;  // Eastern Daylight Time (USA)
-//const int timeZone = -8;  // Pacific Standard Time (USA)
-//const int timeZone = -7;  // Pacific Daylight Time (USA)
+bool warmup=0;
 
-void wspr_spacing()
-{
-  proceed = true;
-}
+const int timeZone = 0;     // UTC
 
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
@@ -66,65 +57,61 @@ void setup()
 
   Serial.begin(9600);
 
-  while (!Serial) ; // Needed for Leonardo only
-  delay(250);
-
   connectToWiFi(networkName, networkPswd);
 
   Serial.println("waiting for sync");
   delay(10000);
   setSyncProvider(getNtpTime);
-  setSyncInterval(300000); //Bogus interval, we will reset later
+  setSyncInterval(600);
   delay(5000);
-  // Initialize the Si5351
-  // Change the 2nd parameter in init if using a ref osc other
-  // than 25 MHz
 
 
-
-
-  if (clockgen.begin() != ERROR_NONE)
-  {
-    /* There was a problem detecting the IC ... check your connections */
-    Serial.print("Ooops, no Si5351 detected ... Check your wiring or I2C ADDR!");
-    while (1);
-  }
+  si5351_init();
   Serial.println("OK!");
   delay(5000);
-  si5351aSetFrequency(freq);
-  clockgen.enableOutputs(false);
 
-  Wire.beginTransmission(0x60);
-  Wire.write(16);
-  Wire.write(0x03 & 0xFF);
-  Wire.endTransmission();
+  Serial.print("got time: ");
+  printTime();
+}
 
-
-
-  timer = timerBegin(3, 80, 1);
-  timerAttachInterrupt(timer, &wspr_spacing, 1);
-  timerAlarmWrite(timer, 682687, true);
-  timerAlarmEnable(timer);
-  Serial.print(hour());
+void printTime()
+{
+  char buf[2];
+  sprintf(buf, "%02d", hour());
+  Serial.print(buf);
   Serial.print(":");
-  Serial.print(minute());
+  sprintf(buf, "%02d", minute());
+  Serial.print(buf);
   Serial.print(":");
-
-  Serial.println(second());
+  sprintf(buf, "%02d", second());
+  Serial.println(buf);
 }
 
 
 void loop()
 {
-
-  if (timeStatus() == timeSet && minute() % 4 == 0 && second() == 0)
-  {
-    setSyncInterval(180); ///reset sync time to prevent interuption of beacon
-    delay(1000);
-    encode();
-    delay(1000);
+  // Trigger every 4 minute
+  // WSPR should start on the 1st second of the even minute.
+  
+  // 30 seconds before trigger enable si5351a output to eliminate startup drift
+  if((minute() + 1) % 4 == 0 && second() == 30 && !warmup)
+  { 
+    warmup=1; //warm up started, bypass this if for the next 30 seconds
+    Serial.println("Radio module Warm up Started ...");
+    si5351.set_freq(freq * 100ULL, SI5351_CLK0);
+    si5351.set_clock_pwr(SI5351_CLK0, 1);  
   }
-  delay(1000);
+
+  if(minute() % 4 == 0 && second() == 0)
+  { 
+    //time to start encoding
+    Serial.print("Start of Transmission Time: ");
+    printTime();
+    Serial.println("Frequency: " + String(freq * 100ULL));
+    encode();
+    warmup=0; //reset variable for next warmup cycle wich will start in 4 minutes and 30 seconds
+    delay(4000);
+  }
 }
 
 
@@ -198,18 +185,16 @@ void connectToWiFi(const char * ssid, const char * pwd) {
 //wifi event handler
 void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
       //When connected set
       Serial.print("WiFi connected! IP address: ");
       Serial.println(WiFi.localIP());
       //initializes the UDP state
       //This initializes the transfer buffer
       udp.begin(WiFi.localIP(), localPort);
-      connected = true;
       break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
       Serial.println("WiFi lost connection");
-      connected = false;
       break;
   }
 }
@@ -218,59 +203,46 @@ void encode()
 {
   uint8_t i;
   Serial.println("Sending Beacon");
+  digitalWrite(TX_LED_PIN, HIGH);
   jtencode.wspr_encode(call, loc, dbm, tx_buffer);
-
-  // Reset the tone to 0 and turn on the output
-  Wire.beginTransmission(0x60);
-  Wire.write(3);
-  Wire.write(0xfe & 0xFF);
-  Wire.endTransmission();
-
 
   // Now do the rest of the message
   for (i = 0; i < SYMBOL_COUNT; i++)
   {
-    si5351aSetFrequency((freq) + (tx_buffer[i] * TONE_SPACING));
-    proceed = false;
-    while (!proceed);
+    si5351.set_freq((freq * 100ULL) + (tx_buffer[i] * TONE_SPACING), SI5351_CLK0);
+    delay(WSPR_DELAY);
   }
 
   // Turn off the output
-  Wire.beginTransmission(0x60);
-  Wire.write(3);
-  Wire.write(0xFF & 0xFF);
-  Wire.endTransmission();
-  Serial.println();
-  Serial.println("Beacon Sent");
+  si5351.set_clock_pwr(SI5351_CLK0, 0);  
+  digitalWrite(TX_LED_PIN, LOW);
+  Serial.println("Beacon sent");
 
 }
 
-void si5351aSetFrequency(uint32_t frequency)
+void si5351_init()
 {
-  uint32_t pllFreq;
-  uint32_t xtalFreq = 25000000;
-  uint32_t l;
-  float f;
-  uint8_t mult;
-  uint32_t num;
-  uint32_t denom;
-  uint32_t divider;
+  // Use the LED as a keying indicator.
+  pinMode(TX_LED_PIN, OUTPUT);
+  digitalWrite(TX_LED_PIN, HIGH);
 
-  divider = 50;// Force MultiSynth divider to 50 for reduced jitter
+  // Initialize the Si5351
+  // Change the 2nd parameter in init if using a ref osc other
+  // than 25 MHz
+  Serial.println("Setup radio module ...");
+
+  si5351.reset();
+  // The crystal load value needs to match in order to have an accurate calibration
+  si5351.init(SI5351_CRYSTAL_LOAD_8PF, 24000000 , 0);
+
+  // Start on target frequency
+  si5351.set_correction(CORRECTION, SI5351_PLL_INPUT_XO);
   
-  pllFreq = divider * frequency;  // Calculate the pllFrequency: the divider * desired output frequency
+  // Set CLK0 output
+  si5351.set_freq(freq * 100ULL, SI5351_CLK0);
+  si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA); // Set for max power
+  si5351.set_clock_pwr(SI5351_CLK0, 0); // Disable the clock initially
 
-  mult = pllFreq / xtalFreq;    // Determine the multiplier to get to the required pllFrequency
-  l = pllFreq % xtalFreq;     // It has three parts:
-  f = l;              // mult is an integer that must be in the range 15..90
-  f *= 200000;         // num and denom are the fractional parts, the numerator and denominator
-  f /= xtalFreq;          // each is 20 bits (range 0..1048575)
-  num = f;            // the actual multiplier is  mult + num / denom
-  denom = 200000;       
-
- 
-  clockgen.setupPLL(SI5351_PLL_A, mult, num, denom);
-  clockgen.setupMultisynth(0, SI5351_PLL_A, divider, 0, 1);
+  Serial.println("Setup successful ...");
+  digitalWrite(TX_LED_PIN, LOW);
 }
-
-
