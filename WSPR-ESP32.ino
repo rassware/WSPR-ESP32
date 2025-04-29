@@ -28,7 +28,7 @@ Si5351 si5351;
 #define WSPR_DELAY 683    // Delay value for WSPR
 #define WSPR_CTC 10672    // CTC value for WSPR
 #define SYMBOL_COUNT WSPR_SYMBOL_COUNT
-#define CORRECTION 0  // Freq Correction in Hz
+#define CORRECTION 155000  // Freq Correction in Hz
 #define TX_LED_PIN 2  // integrated onboard led
 
 
@@ -42,7 +42,7 @@ const char *networkPswd = WIFI_PASSWD;
 
 
 JTEncode jtencode;
-unsigned long freq = 28124900UL;
+unsigned long freq = 2812610000ULL;
 char call[6] = "DL2RN";
 char loc[5] = "JN68";
 uint8_t dbm = 10;
@@ -97,14 +97,14 @@ void loop() {
   if ((minute() + 1) % 4 == 0 && second() == 30 && !warmup && active) {
     warmup = 1;  //warm up started, bypass this if for the next 30 seconds
     log("Radio module warm up started ...");
-    si5351.set_freq(freq * 100ULL, SI5351_CLK0);
+    si5351.set_freq(freq, SI5351_CLK0);
     si5351.set_clock_pwr(SI5351_CLK0, 1);
   }
 
   if (minute() % 4 == 0 && second() == 0 && active) {
     //time to start encoding
     log("Start of Transmission Time: " + String(printTime()));
-    log("Frequency: " + String(freq * 100ULL));
+    log("Frequency: " + String(freq));
     encode();
     warmup = 0;  //reset variable for next warmup cycle wich will start in 4 minutes and 30 seconds
     delay(4000);
@@ -203,7 +203,7 @@ void encode() {
 
   // Now do the rest of the message
   for (i = 0; i < SYMBOL_COUNT; i++) {
-    si5351.set_freq((freq * 100ULL) + (tx_buffer[i] * TONE_SPACING), SI5351_CLK0);
+    si5351.set_freq(freq + (tx_buffer[i] * TONE_SPACING), SI5351_CLK0);
     delay(WSPR_DELAY);
   }
 
@@ -225,13 +225,13 @@ void si5351_init() {
 
   si5351.reset();
   // The crystal load value needs to match in order to have an accurate calibration
-  si5351.init(SI5351_CRYSTAL_LOAD_8PF, 24000000, 0);
+  si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
 
   // Start on target frequency
   si5351.set_correction(CORRECTION, SI5351_PLL_INPUT_XO);
 
   // Set CLK0 output
-  si5351.set_freq(freq * 100ULL, SI5351_CLK0);
+  si5351.set_freq(freq, SI5351_CLK0);
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);  // Set for max power
   si5351.set_clock_pwr(SI5351_CLK0, 0);                  // Disable the clock initially
 
