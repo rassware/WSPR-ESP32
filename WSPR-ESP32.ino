@@ -19,10 +19,9 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <credentials.h>
-
 #include <si5351.h>
 
-Si5351 si5351;
+
 
 #define TONE_SPACING 146  // ~1.46 Hz
 #define WSPR_DELAY 683    // Delay value for WSPR
@@ -31,36 +30,24 @@ Si5351 si5351;
 #define CORRECTION 155000  // Freq Correction in Hz
 #define TX_LED_PIN 2  // integrated onboard led
 
-
-
-
-hw_timer_t *timer = NULL;
+Si5351 si5351;
+JTEncode jtencode;
+IPAddress timeServer(185, 255, 121, 15);
+WiFiUDP udp;
 
 // WiFi network name and password:
 const char *networkName = WIFI_SSID;
 const char *networkPswd = WIFI_PASSWD;
 
-
-JTEncode jtencode;
+hw_timer_t *timer = NULL;
 unsigned long freq = 2812610000ULL;
 char call[6] = "DL2RN";
 char loc[5] = "JN68";
 uint8_t dbm = 10;
 uint8_t tx_buffer[SYMBOL_COUNT];
-
-// NTP Servers:
-IPAddress timeServer(185, 255, 121, 15);
-
-WiFiUDP udp;
-
 bool warmup = 0;
-
 bool active = true;
-
-const int timeZone = 0;  // UTC
-
 uint8_t localPort = 8888;  // local port to listen for UDP packets
-
 uint8_t trigger_every_x_minutes = 10; // how often should the beacon be sent
 
 void setup() {
@@ -82,6 +69,7 @@ void setup() {
   log("got time: " + String(printTime()));
 
   webserver_setup();
+  setCpuFrequencyMhz(80);
 }
 
 char *printTime() {
@@ -122,13 +110,13 @@ byte packetBuffer[NTP_PACKET_SIZE];  //buffer to hold incoming & outgoing packet
 time_t getNtpTime() {
   while (udp.parsePacket() > 0)
     ;  // discard any previously received packets
-  log("Transmit NTP Request");
+  Serial.println("Transmit NTP Request");
   sendNTPpacket(timeServer);
   uint32_t beginWait = millis();
   while (millis() - beginWait < 1500) {
     int size = udp.parsePacket();
     if (size >= NTP_PACKET_SIZE) {
-      log("Receive NTP Response");
+      Serial.println("Receive NTP Response");
       udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
       unsigned long secsSince1900;
       // convert four bytes starting at location 40 to a long integer
@@ -136,10 +124,10 @@ time_t getNtpTime() {
       secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
       secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
       secsSince1900 |= (unsigned long)packetBuffer[43];
-      return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
+      return secsSince1900 - 2208988800UL;
     }
   }
-  log("No NTP Response :-(");
+  Serial.println("No NTP Response :-(");
   return 0;  // return 0 if unable to get the time
 }
 
@@ -242,7 +230,8 @@ void si5351_init() {
 
 void log(String message) {
   Serial.println(message);
-  ws_sendAll(message);
+  String json = "{\"timestamp\": \"" + String(printTime()) + "\", \"message\": \"" + message + "\"}";
+  ws_sendAll(json);
 }
 
 char * si5351_get_status() {

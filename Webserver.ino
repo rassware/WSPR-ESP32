@@ -90,7 +90,20 @@ static const char *htmlContent PROGMEM = R"(
 
 <body>
    <div id="connectionStatus">Disconnected</div>
-   <h1>DL2RN | WSPR-ESP32 Beacon</h1>
+   <h3><pre>
+                              ______ _      _____ ______ _   _                                    
+ ______ ______ ______ ______  |  _  \ |    / __  \| ___ \ \ | |  ______ ______ ______ ______      
+|______|______|______|______| | | | | |    `' / /'| |_/ /  \| | |______|______|______|______|     
+ ______ ______ ______ ______  | | | | |      / /  |    /| . ` |  ______ ______ ______ ______      
+|______|______|______|______| | |/ /| |____./ /___| |\ \| |\  | |______|______|______|______|     
+                              |___/ \_____/\_____/\_| \_\_| \_/                                   
+ _    _ _________________       _____ ___________ _____  _____  ______                            
+| |  | /  ___| ___ \ ___ \     |  ___/  ___| ___ \____ |/ __  \ | ___ \                           
+| |  | \ `--.| |_/ / |_/ /_____| |__ \ `--.| |_/ /   / /`' / /' | |_/ / ___  __ _  ___ ___  _ __  
+| |/\| |`--. \  __/|    /______|  __| `--. \  __/    \ \  / /   | ___ \/ _ \/ _` |/ __/ _ \| '_ \ 
+\  /\  /\__/ / |   | |\ \      | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
+ \/  \/\____/\_|   \_| \_|     \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
+   </pre></h3>
    <h3>Commands: [start, stop, status, trigger4, trigger10, trigger20]</h3>
    <input type="text" id="messageInput" placeholder="Type a message..." />
    <button id="sendButton">Send</button>
@@ -116,17 +129,15 @@ static const char *htmlContent PROGMEM = R"(
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message');
 
-        const now = new Date();
-        const date = now.toLocaleDateString();
-        const time = now.toLocaleTimeString();
+        const data = JSON.parse(event.data);
 
         const timestampSpan = document.createElement('span');
         timestampSpan.classList.add('timestamp');
-        timestampSpan.textContent = `[${date} ${time}] `;
+        timestampSpan.textContent = `[${data.timestamp}] `;
 
         const textSpan = document.createElement('span');
         textSpan.classList.add('text');
-        textSpan.textContent = event.data;
+        textSpan.textContent = data.message;
 
         messageDiv.appendChild(timestampSpan);
         messageDiv.appendChild(textSpan);
