@@ -55,11 +55,13 @@ WiFiUDP udp;
 
 bool warmup = 0;
 
-bool active = 1;
+bool active = true;
 
 const int timeZone = 0;  // UTC
 
-unsigned int localPort = 8888;  // local port to listen for UDP packets
+uint8_t localPort = 8888;  // local port to listen for UDP packets
+
+uint8_t trigger_every_x_minutes = 10; // how often should the beacon be sent
 
 void setup() {
 
@@ -75,7 +77,6 @@ void setup() {
 
 
   si5351_init();
-  log("OK!");
   delay(5000);
 
   log("got time: " + String(printTime()));
@@ -90,23 +91,23 @@ char *printTime() {
 }
 
 void loop() {
-  // Trigger every 4 minute
+  // Trigger every X minutes defined by variable 'trigger_every_x_minutes'
   // WSPR should start on the 1st second of the even minute.
 
-  // 30 seconds before trigger enable si5351a output to eliminate startup drift
-  if ((minute() + 1) % 4 == 0 && second() == 30 && !warmup && active) {
-    warmup = 1;  //warm up started, bypass this if for the next 30 seconds
+  // 50 seconds before trigger enable si5351a output to eliminate startup drift
+  if ((minute() + 1) % trigger_every_x_minutes == 0 && second() == 50 && !warmup && active) {
+    warmup = 1;  //warm up started, bypass this if for the next 10 seconds
     log("Radio module warm up started ...");
     si5351.set_freq(freq, SI5351_CLK0);
     si5351.set_clock_pwr(SI5351_CLK0, 1);
   }
 
-  if (minute() % 4 == 0 && second() == 0 && active) {
+  if (minute() % trigger_every_x_minutes == 0 && second() == 0 && active) {
     //time to start encoding
     log("Start of Transmission Time: " + String(printTime()));
     log("Frequency: " + String(freq));
     encode();
-    warmup = 0;  //reset variable for next warmup cycle wich will start in 4 minutes and 30 seconds
+    warmup = 0;  //reset variable for next warmup cycle wich will start in x minutes and 50 seconds
     delay(4000);
   }
 }

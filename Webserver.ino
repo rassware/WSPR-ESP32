@@ -25,7 +25,7 @@ static const char *htmlContent PROGMEM = R"(
 <html lang="en">
       
 <head>
-    <title>WSPR-ESP32 Beacon</title>
+    <title>DL2RN | WSPR-ESP32 Beacon</title>
     <link rel="icon" href="data:,">
     <style>
         body {
@@ -90,8 +90,8 @@ static const char *htmlContent PROGMEM = R"(
 
 <body>
    <div id="connectionStatus">Disconnected</div>
-   <h1>WSPR-ESP32 Beacon</h1>
-   <h3>Commands: [date, start, stop, status]</h3>
+   <h1>DL2RN | WSPR-ESP32 Beacon</h1>
+   <h3>Commands: [start, stop, status, trigger4, trigger10, trigger20]</h3>
    <input type="text" id="messageInput" placeholder="Type a message..." />
    <button id="sendButton">Send</button>
    <div id="connectionStatus">
@@ -219,20 +219,31 @@ void webserver_setup() {
         if (info->opcode == WS_TEXT) {
           data[len] = 0;
           msg = (char *)data;
-          if (msg == "date") {
-            log("Actual time: " + String(printTime()));
-          } 
-          else if (msg == "start") {
-            active = 1;
+          if (msg == "start") {
+            active = true;
             log("Beacon activated ...");
           }
           else if (msg == "stop") {
-            active = 0;
+            active = false;
             log("Beacon deactivated ...");
+          }
+          else if (msg == "trigger4") {
+            trigger_every_x_minutes = 4;
+            log("Trigger set every 4 minutes ...");
+          }
+          else if (msg == "trigger10") {
+            trigger_every_x_minutes = 10;
+            log("Trigger set every 10 minutes ...");
           } 
+          else if (msg == "trigger20") {
+            trigger_every_x_minutes = 20;
+            log("Trigger set every 20 minutes ...");
+          }
           else if (msg == "status") {
-            active = 0;
             log("SI5351 status: " + String(si5351_get_status()));
+            log("Actual time: " + String(printTime()));
+            log("Beacon active: " + String(active ? "true" : "false"));
+            log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
           } 
           else {
             log(msg);
