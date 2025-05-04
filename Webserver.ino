@@ -212,7 +212,12 @@ void webserver_setup() {
     if (type == WS_EVT_CONNECT) {
       Serial.println("ws connect");
       client->setCloseClientOnQueueFull(false);
-
+      for (int i = 0; i < messageCount; i++)
+      {
+        int index = (messageStart + i) % MAX_MESSAGES;
+        String json = messageBuffer[index];
+        ws_sendAll(json);
+      }
     } else if (type == WS_EVT_DISCONNECT) {
       Serial.println("ws disconnect");
 

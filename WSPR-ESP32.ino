@@ -29,11 +29,13 @@
 #define SYMBOL_COUNT WSPR_SYMBOL_COUNT
 #define CORRECTION 155000  // Freq Correction in Hz
 #define TX_LED_PIN 2  // integrated onboard led
+#define MAX_MESSAGES 10 // max messages in buffer
 
 Si5351 si5351;
 JTEncode jtencode;
 IPAddress timeServer(185, 255, 121, 15);
 WiFiUDP udp;
+String messageBuffer[MAX_MESSAGES];
 
 // WiFi network name and password:
 const char *networkName = WIFI_SSID;
@@ -49,27 +51,22 @@ bool warmup = 0;
 bool active = true;
 uint8_t localPort = 8888;  // local port to listen for UDP packets
 uint8_t trigger_every_x_minutes = 10; // how often should the beacon be sent
+int messageStart = 0;   // index of the oldest message
+int messageCount = 0;   // count of messages
+
 
 void setup() {
-
   Serial.begin(9600);
-
   connectToWiFi(networkName, networkPswd);
-
   log("waiting for sync");
   delay(10000);
   setSyncProvider(getNtpTime);
   setSyncInterval(3600);
   delay(5000);
-
-
   si5351_init();
   delay(5000);
-
   log("got time: " + String(printTime()));
-
   webserver_setup();
-  setCpuFrequencyMhz(80);
 }
 
 char *printTime() {
@@ -231,6 +228,7 @@ void si5351_init() {
 void log(String message) {
   Serial.println(message);
   String json = "{\"timestamp\": \"" + String(printTime()) + "\", \"message\": \"" + message + "\"}";
+  addMessageToBuffer(json);
   ws_sendAll(json);
 }
 
@@ -239,4 +237,14 @@ char * si5351_get_status() {
   si5351.update_status();
   sprintf(buf, "SYS_INIT: %" PRIu8 ", LOL_A: %" PRIu8 ", LOL_B: %" PRIu8 ", LOS: %" PRIu8 ", REVID: %" PRIu8, si5351.dev_status.SYS_INIT, si5351.dev_status.LOL_A, si5351.dev_status.LOL_B, si5351.dev_status.LOS, si5351.dev_status.REVID);
   return buf;
+}
+
+void addMessageToBuffer(String message) {
+  int index = (messageStart + messageCount) % MAX_MESSAGES;
+  messageBuffer[index] = message;
+  if (messageCount < MAX_MESSAGES) {
+    messageCount++;
+  } else {
+    messageStart = (messageStart + 1) % MAX_MESSAGES; // override oldest message
+  }
 }
