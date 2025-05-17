@@ -105,7 +105,7 @@ static const char *htmlContent PROGMEM = R"(
 \  /\  /\__/ / |   | |\ \      | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
  \/  \/\____/\_|   \_| \_|     \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
    </pre></h3>
-   <h3>Commands: [start, stop, status, trigger4, trigger10, trigger20]</h3>
+   <h3>Commands: [start, stop, status, trigger4, trigger10, trigger20, reboot]</h3>
    <input type="text" id="messageInput" placeholder="Type a message..." />
    <button id="sendButton">Send</button>
    <div id="connectionStatus">
@@ -265,6 +265,10 @@ void webserver_setup() {
             log("Used call sign: " + String(CALL_SIGN));
             log("Used locator: " + String(LOCATOR));
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
+          } 
+          else if (msg == "reboot") {
+            log("Rebooting ESP ...");
+            ESP.restart();
           } 
           else {
             log("Unknown command: " + msg);
