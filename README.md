@@ -1,0 +1,21 @@
+# WSPR-ESP32 Beacon
+
+## description
+This project creates a simple WSPR beacon with only a few components.
+
+## components
+1. An ESP32
+2. A Si5351 clock generator breakout board
+3. A low pass filter
+4. An Antenna
+
+## how it works
+The ESP32 makes the heavy lifting of the WSPR encoding and the clock generator generates the correct frequency.
+The output power is around 10 mW.
+
+## web ui included
+There is a status page for the beacon, where all important parameter are visible and changeable over web socket.
+
+
+
+### Have fun and good DX, 73 DL2RN
