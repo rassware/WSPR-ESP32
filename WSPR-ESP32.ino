@@ -15,7 +15,6 @@
 
 #include <JTEncode.h>
 #include <int.h>
-#include <TimeLib.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <config.h>
@@ -114,15 +113,19 @@ void loop() {
   // Trigger every X minutes defined by variable 'trigger_every_x_minutes'
   // WSPR should start on the 1st second of the even minute.
 
+  // get acutal time
+  struct tm timeinfo;
+  getLocalTime(&timeinfo);
+
   // 50 seconds before trigger enable si5351a output to eliminate startup drift
-  if ((minute() + 1) % trigger_every_x_minutes == 0 && second() == 50 && !warmup && active) {
+  if ((timeinfo.tm_min + 1) % trigger_every_x_minutes == 0 && timeinfo.tm_sec == 50 && !warmup && active) {
     warmup = 1;  //warm up started, bypass this if for the next 10 seconds
     log("Radio module warm up started ...");
     si5351.set_freq(freq, SI5351_CLK0);
     si5351.set_clock_pwr(SI5351_CLK0, 1);
   }
 
-  if (minute() % trigger_every_x_minutes == 0 && second() == 0 && active) {
+  if (timeinfo.tm_min % trigger_every_x_minutes == 0 && timeinfo.tm_sec == 0 && active) {
     //time to start encoding
     log("Start of Transmission Time: " + String(printTime()));
     log("Frequency: " + String(freq));
@@ -131,6 +134,7 @@ void loop() {
     delay(4000);
   }
    ArduinoOTA.handle();
+   delay(500);
 }
 
 void connectToWiFi(const char *ssid, const char *pwd) {
