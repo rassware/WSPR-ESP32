@@ -3,13 +3,9 @@
   created 2025-04-27
   by Christian Rassmann
 
-
   Uses
   Etherkit JTEncode by Jason Mildrum
   Etherkit Si5351 by Jason Mildrum
-  Time by Michael Margolis
-
-
 */
 
 
@@ -117,7 +113,7 @@ void loop() {
   struct tm timeinfo;
   getLocalTime(&timeinfo);
 
-  // 50 seconds before trigger enable si5351a output to eliminate startup drift
+  // 10 seconds before trigger enable si5351a output to eliminate startup drift
   if ((timeinfo.tm_min + 1) % trigger_every_x_minutes == 0 && timeinfo.tm_sec == 50 && !warmup && active) {
     warmup = 1;  //warm up started, bypass this if for the next 10 seconds
     log("Radio module warm up started ...");

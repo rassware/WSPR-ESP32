@@ -9,6 +9,12 @@ This project creates a simple WSPR beacon with only a few components.
 3. A low pass filter
 4. An Antenna
 
+## arduino ide libs
+ * Etherkit JTEncode by Jason Mildrum
+ * Etherkit Si5351 by Jason Mildrum
+ * Async TCP by ESP32Async
+ * ESP Async Webserver by ESP32Async
+
 ## how it works
 The ESP32 makes the heavy lifting of the WSPR encoding and the clock generator generates the correct frequency.
 The output power is around 10 mW.
