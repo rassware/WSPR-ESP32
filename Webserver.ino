@@ -13,6 +13,7 @@
 #include <Arduino.h>
 #include <AsyncTCP.h>
 #include <WiFi.h>
+#include <config.h>
 
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
@@ -235,6 +236,8 @@ void webserver_setup() {
         if (info->opcode == WS_TEXT) {
           data[len] = 0;
           msg = (char *)data;
+          msg.trim();
+          msg.toLowerCase();
           if (msg == "start") {
             active = true;
             log("Beacon activated ...");
@@ -259,6 +262,8 @@ void webserver_setup() {
             log("SI5351 status: " + String(si5351_get_status()));
             log("Actual time: " + String(printTime()));
             log("Beacon active: " + String(active ? "true" : "false"));
+            log("Used call sign: " + String(CALL_SIGN));
+            log("Used locator: " + String(LOCATOR));
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
           } 
           else {

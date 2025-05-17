@@ -18,18 +18,15 @@
 #include <TimeLib.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
-#include <credentials.h>
+#include <config.h>
 #include <si5351.h>
-
+#include <ArduinoOTA.h>
 
 
 #define TONE_SPACING 146  // ~1.46 Hz
 #define WSPR_DELAY 683    // Delay value for WSPR
 #define WSPR_CTC 10672    // CTC value for WSPR
 #define SYMBOL_COUNT WSPR_SYMBOL_COUNT
-#define CORRECTION 155000  // Freq Correction in Hz
-#define TX_LED_PIN 2  // integrated onboard led
-#define MAX_MESSAGES 10 // max messages in buffer
 
 Si5351 si5351;
 JTEncode jtencode;
@@ -43,14 +40,14 @@ const char *networkPswd = WIFI_PASSWD;
 
 hw_timer_t *timer = NULL;
 unsigned long freq = 2812610000ULL;
-char call[6] = "DL2RN";
-char loc[5] = "JN68";
+char call[6] = CALL_SIGN;
+char loc[5] = LOCATOR;
 uint8_t dbm = 10;
 uint8_t tx_buffer[SYMBOL_COUNT];
 bool warmup = 0;
 bool active = true;
 uint8_t localPort = 8888;  // local port to listen for UDP packets
-uint8_t trigger_every_x_minutes = 10; // how often should the beacon be sent
+uint8_t trigger_every_x_minutes = 20; // how often should the beacon be sent
 int messageStart = 0;   // index of the oldest message
 int messageCount = 0;   // count of messages
 
@@ -67,6 +64,33 @@ void setup() {
   delay(5000);
   log("got time: " + String(printTime()));
   webserver_setup();
+  // OTA Setup
+  ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "Sketch";
+      else // U_SPIFFS
+        type = "Filesystem";
+      Serial.println("Start OTA Update: " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nOTA Update finished.");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error [%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("auth error");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("begin error");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("connect error");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("receive error");
+      else if (error == OTA_END_ERROR) Serial.println("end error");
+    });
+  ArduinoOTA.setHostname("WSPR-ESP32");
+  ArduinoOTA.setPassword("wspr");
+  ArduinoOTA.begin();
 }
 
 char *printTime() {
@@ -95,6 +119,7 @@ void loop() {
     warmup = 0;  //reset variable for next warmup cycle wich will start in x minutes and 50 seconds
     delay(4000);
   }
+   ArduinoOTA.handle();
 }
 
 
