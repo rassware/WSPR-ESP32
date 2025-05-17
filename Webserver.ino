@@ -267,7 +267,7 @@ void webserver_setup() {
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
           } 
           else {
-            log(msg);
+            log("Unknown command: " + msg);
           }
         }
       }
