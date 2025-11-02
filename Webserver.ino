@@ -28,12 +28,18 @@ static const char *htmlContent PROGMEM = R"(
 <head>
     <title>DL2RN | WSPR-ESP32 Beacon</title>
     <link rel="icon" href="data:,">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
           background-color: black;
           color: limegreen;
           font-family: monospace;
           padding: 20px;
+        }
+
+        html {
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
         }
 
         #messages {
@@ -264,6 +270,7 @@ void webserver_setup() {
             log("Beacon active: " + String(active ? "true" : "false"));
             log("Used call sign: " + String(CALL_SIGN));
             log("Used locator: " + String(LOCATOR));
+            log("Used freq correction: " + String(CORRECTION));
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
           } 
           else if (msg == "reboot") {
