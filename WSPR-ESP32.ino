@@ -34,9 +34,13 @@ const char *networkName = WIFI_SSID;
 const char *networkPswd = WIFI_PASSWD;
 
 hw_timer_t *timer = NULL;
-unsigned long freq = 2812610000ULL;
+unsigned long freq = 2812600000ULL;
+// wspr on 10m is between 2812600000 and 2812620000
+// we are working between 2812605000 and 2812615000
+unsigned long randomFreq = freq;
 char call[6] = CALL_SIGN;
 char loc[5] = LOCATOR;
+unsigned long correction = CORRECTION;
 uint8_t dbm = 10;
 uint8_t tx_buffer[SYMBOL_COUNT];
 bool warmup = 0;
@@ -113,18 +117,20 @@ void loop() {
   struct tm timeinfo;
   getLocalTime(&timeinfo);
 
+  randomFreq = freq + getRandom50to150();
+
   // 10 seconds before trigger enable si5351a output to eliminate startup drift
   if ((timeinfo.tm_min + 1) % trigger_every_x_minutes == 0 && timeinfo.tm_sec == 50 && !warmup && active) {
     warmup = 1;  //warm up started, bypass this if for the next 10 seconds
     log("Radio module warm up started ...");
-    si5351.set_freq(freq, SI5351_CLK0);
+    si5351.set_freq(randomFreq, SI5351_CLK0);
     si5351.set_clock_pwr(SI5351_CLK0, 1);
   }
 
   if (timeinfo.tm_min % trigger_every_x_minutes == 0 && timeinfo.tm_sec == 0 && active) {
     //time to start encoding
     log("Start of Transmission Time: " + String(printTime()));
-    log("Frequency: " + String(freq));
+    log("Frequency: " + String(randomFreq));
     encode();
     warmup = 0;  //reset variable for next warmup cycle wich will start in x minutes and 50 seconds
     delay(4000);
@@ -172,7 +178,7 @@ void encode() {
 
   // Now do the rest of the message
   for (i = 0; i < SYMBOL_COUNT; i++) {
-    si5351.set_freq(freq + (tx_buffer[i] * TONE_SPACING), SI5351_CLK0);
+    si5351.set_freq(randomFreq + (tx_buffer[i] * TONE_SPACING), SI5351_CLK0);
     delay(WSPR_DELAY);
   }
 
@@ -197,7 +203,7 @@ void si5351_init() {
   si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
 
   // Start on target frequency
-  si5351.set_correction(CORRECTION, SI5351_PLL_INPUT_XO);
+  si5351.set_correction(correction, SI5351_PLL_INPUT_XO);
 
   // Set CLK0 output
   si5351.set_freq(freq, SI5351_CLK0);
@@ -230,4 +236,13 @@ void addMessageToBuffer(String message) {
   } else {
     messageStart = (messageStart + 1) % MAX_MESSAGES; // override oldest message
   }
+}
+
+int getRandom50to150() {
+  static bool seeded = false;
+  if (!seeded) {
+    randomSeed(analogRead(A0));
+    seeded = true;
+  }
+  return random(50, 151) * 100;
 }

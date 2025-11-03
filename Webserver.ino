@@ -111,7 +111,7 @@ static const char *htmlContent PROGMEM = R"(
 \  /\  /\__/ / |   | |\ \      | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
  \/  \/\____/\_|   \_| \_|     \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
    </pre></h3>
-   <h3>Commands: [start, stop, status, trigger4, trigger10, trigger20, reboot]</h3>
+   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, reboot]</h3>
    <input type="text" id="messageInput" placeholder="Type a message..." />
    <button id="sendButton">Send</button>
    <div id="connectionStatus">
@@ -238,6 +238,8 @@ void webserver_setup() {
       AwsFrameInfo *info = (AwsFrameInfo *)arg;
       Serial.printf("index: %" PRIu64 ", len: %" PRIu64 ", final: %" PRIu8 ", opcode: %" PRIu8 "\n", info->index, info->len, info->final, info->opcode);
       String msg = "";
+      String key = "";
+      long value = 0;
       if (info->final && info->index == 0 && info->len == len) {
         if (info->opcode == WS_TEXT) {
           data[len] = 0;
@@ -252,31 +254,33 @@ void webserver_setup() {
             active = false;
             log("Beacon deactivated ...");
           }
-          else if (msg == "trigger4") {
-            trigger_every_x_minutes = 4;
-            log("Trigger set every 4 minutes ...");
-          }
-          else if (msg == "trigger10") {
-            trigger_every_x_minutes = 10;
-            log("Trigger set every 10 minutes ...");
-          } 
-          else if (msg == "trigger20") {
-            trigger_every_x_minutes = 20;
-            log("Trigger set every 20 minutes ...");
-          }
           else if (msg == "status") {
             log("SI5351 status: " + String(si5351_get_status()));
             log("Actual time: " + String(printTime()));
             log("Beacon active: " + String(active ? "true" : "false"));
             log("Used call sign: " + String(CALL_SIGN));
             log("Used locator: " + String(LOCATOR));
-            log("Used freq correction: " + String(CORRECTION));
+            log("Used freq correction: " + String(correction));
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
           } 
           else if (msg == "reboot") {
             log("Rebooting ESP ...");
             ESP.restart();
-          } 
+          }
+          else if (splitAndValidateInt(msg, key, value)) {
+            if (key == "trigger") {
+              trigger_every_x_minutes = value;
+              log("Trigger set every " + String(value) + " minutes ...");
+            }
+            else if (key == "correction") {
+              correction = value;
+              si5351_init();
+              log("Correction set to " + String(value));
+            }
+            else {
+              log("Unknown parameter: " + key);
+            }
+          }
           else {
             log("Unknown command: " + msg);
           }
@@ -312,4 +316,32 @@ void ws_sendAll(String payload) {
   if (ws.count() > 0) {
     ws.textAll(payload);
   }
+}
+
+bool splitAndValidateInt(String inputString, String &part1, long &part2) {
+  inputString.trim();
+
+  int spaceIndex = inputString.indexOf(' ');
+  if (spaceIndex == -1) {
+    return false;
+  }
+
+  part1 = inputString.substring(0, spaceIndex);
+
+  String part2Str = inputString.substring(spaceIndex);
+  part2Str.trim();
+
+  if (part2Str.length() == 0) {
+    return false;
+  }
+
+  for (unsigned int i = 0; i < part2Str.length(); i++) {
+    char c = part2Str.charAt(i);
+    if (!isDigit(c) && !(i == 0 && (c == '-' || c == '+'))) {
+      return false;
+    }
+  }
+
+  part2 = part2Str.toInt();
+  return true;
 }
