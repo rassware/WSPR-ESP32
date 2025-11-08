@@ -41,12 +41,13 @@ char loc[5] = LOCATOR;
 unsigned long correction = CORRECTION;
 uint8_t dbm = POWER;
 uint8_t tx_buffer[SYMBOL_COUNT];
-bool warmup = 0;
+bool warmup = false;
 bool active = true;
 uint8_t localPort = 8888;  // local port to listen for UDP packets
 uint8_t trigger_every_x_minutes = TRIGGER_EVERY_X_MINUTES; // how often should the beacon be sent
-int messageStart = 0;   // index of the oldest message
-int messageCount = 0;   // count of messages
+uint8_t num_transmissions = NUM_TRANSMISSIONS;
+uint8_t messageStart = 0;   // index of the oldest message
+uint8_t messageCount = 0;   // count of messages
 
 
 void setup() {
@@ -107,34 +108,66 @@ char *printTime() {
   return buf;
 }
 
-void loop() {
-  // Trigger every X minutes defined by variable 'trigger_every_x_minutes'
-  // WSPR should start on the 1st second of the even minute.
+// --- status variables ---
+uint8_t current_transmission = 0;
+bool in_series = false;
+time_t next_start_time = 0;
 
-  // get acutal time
+void loop() {
   struct tm timeinfo;
   getLocalTime(&timeinfo);
+  time_t now = mktime(&timeinfo);
 
-  randomFreq = freq + getRandom50to150();
+  randomFreq = freq + getRandom5000to15000();
 
-  // 10 seconds before trigger enable si5351a output to eliminate startup drift
-  if ((timeinfo.tm_min + 1) % trigger_every_x_minutes == 0 && timeinfo.tm_sec == 50 && !warmup && active) {
-    warmup = 1;  //warm up started, bypass this if for the next 10 seconds
-    log("Radio module warm up started ...");
+  // ---------- start of series ----------
+  if (!in_series &&
+      timeinfo.tm_min % trigger_every_x_minutes == 0 &&
+      timeinfo.tm_sec == 0 && 
+      active) {
+
+    in_series = true;
+    current_transmission = 0;
+    next_start_time = now;
+    log("New transmission series started");
+  }
+
+  // ---------- warmup 5 secounds before start ----------
+  if (!warmup && 
+      ((timeinfo.tm_min + 1) % trigger_every_x_minutes == 0 || difftime(next_start_time, now) >= 5) &&
+      timeinfo.tm_sec == 55 &&
+      active) {
+    warmup = true;
     si5351.set_freq(randomFreq, SI5351_CLK0);
     si5351.set_clock_pwr(SI5351_CLK0, 1);
+    log("Radio module warm up started ...");
   }
 
-  if (timeinfo.tm_min % trigger_every_x_minutes == 0 && timeinfo.tm_sec == 0 && active) {
-    //time to start encoding
-    log("Start of Transmission Time: " + String(printTime()));
+  // ---------- start of next transmission ----------
+  if (in_series && difftime(now, next_start_time) >= 0 && active) {
+    current_transmission++;
+    warmup = false;
+
+    log("Start of Transmission #" + String(current_transmission));
     log("Frequency: " + String(randomFreq));
+
     encode();
-    warmup = 0;  //reset variable for next warmup cycle wich will start in x minutes and 50 seconds
-    delay(4000);
+
+    log("Transmission #" + String(current_transmission) + " finished.");
+
+    // prepare next transmission
+    if (current_transmission < num_transmissions) {
+      next_start_time += (2 * 60);
+      randomFreq = freq + getRandom5000to15000();
+    } else {
+      in_series = false;
+      si5351.set_clock_pwr(SI5351_CLK0, 0);
+      log("Transmission series finished.");
+    }
   }
-   ArduinoOTA.handle();
-   delay(500);
+
+  ArduinoOTA.handle();
+  delay(500);
 }
 
 void connectToWiFi(const char *ssid, const char *pwd) {
@@ -236,11 +269,11 @@ void addMessageToBuffer(String message) {
   }
 }
 
-int getRandom50to150() {
+int getRandom5000to15000() {
   static bool seeded = false;
   if (!seeded) {
     randomSeed(analogRead(A0));
     seeded = true;
   }
-  return random(50, 151) * 100;
+  return random(5000, 15000);
 }

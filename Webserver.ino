@@ -111,7 +111,7 @@ static const char *htmlContent PROGMEM = R"(
 \  /\  /\__/ / |   | |\ \      | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
  \/  \/\____/\_|   \_| \_|     \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
    </pre></h3>
-   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, reboot]</h3>
+   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, reboot]</h3>
    <input type="text" id="messageInput" placeholder="Type a message..." />
    <button id="sendButton">Send</button>
    <div id="connectionStatus">
@@ -263,6 +263,7 @@ void webserver_setup() {
             log("Used locator: " + String(LOCATOR));
             log("Used freq correction: " + String(correction));
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
+            log("Transmission count is " + String(num_transmissions));
           } 
           else if (msg == "reboot") {
             log("Rebooting ESP ...");
@@ -282,6 +283,15 @@ void webserver_setup() {
               correction = value;
               si5351_init();
               log("Correction set to " + String(value));
+            }
+            else if (key == "transmissions") {
+              if (value > 0 && value <= 5) {
+                num_transmissions = value;
+                log("Transmissions set to " + String(value));
+              }
+              else {
+                log("Transmissions count must be between 2 and 5 ...");
+              }
             }
             else {
               log("Unknown parameter: " + key);
