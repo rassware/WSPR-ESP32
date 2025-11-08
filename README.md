@@ -22,6 +22,9 @@ The output power is around 10 mW.
 ## web ui included
 There is a status page for the beacon, where all important parameter are visible and changeable over web socket.
 
-
+## versions
+### version 1.0
+ - added more parameter to the config file
+ - added validation to trigger value
 
 ### Have fun and good DX, 73 DL2RN

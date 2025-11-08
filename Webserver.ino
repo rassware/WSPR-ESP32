@@ -269,8 +269,13 @@ void webserver_setup() {
           }
           else if (splitAndValidateInt(msg, key, value)) {
             if (key == "trigger") {
-              trigger_every_x_minutes = value;
-              log("Trigger set every " + String(value) + " minutes ...");
+              if (value >= 2 && value <= 60) {
+                trigger_every_x_minutes = value;
+                log("Trigger set every " + String(value) + " minutes ...");
+              }
+              else {
+                log("Trigger must be between 2 and 60 minutes ...");
+              }
             }
             else if (key == "correction") {
               correction = value;

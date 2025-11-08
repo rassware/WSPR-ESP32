@@ -34,19 +34,17 @@ const char *networkName = WIFI_SSID;
 const char *networkPswd = WIFI_PASSWD;
 
 hw_timer_t *timer = NULL;
-unsigned long freq = 2812600000ULL;
-// wspr on 10m is between 2812600000 and 2812620000
-// we are working between 2812605000 and 2812615000
+unsigned long freq = FREQUENCY;
 unsigned long randomFreq = freq;
 char call[6] = CALL_SIGN;
 char loc[5] = LOCATOR;
 unsigned long correction = CORRECTION;
-uint8_t dbm = 10;
+uint8_t dbm = POWER;
 uint8_t tx_buffer[SYMBOL_COUNT];
 bool warmup = 0;
 bool active = true;
 uint8_t localPort = 8888;  // local port to listen for UDP packets
-uint8_t trigger_every_x_minutes = 20; // how often should the beacon be sent
+uint8_t trigger_every_x_minutes = TRIGGER_EVERY_X_MINUTES; // how often should the beacon be sent
 int messageStart = 0;   // index of the oldest message
 int messageCount = 0;   // count of messages
 
