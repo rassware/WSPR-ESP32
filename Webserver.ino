@@ -255,6 +255,7 @@ void webserver_setup() {
             log("Beacon deactivated ...");
           }
           else if (msg == "status") {
+            log("Software version: " + String(SW_VERSION));
             log("SI5351 status: " + String(si5351_get_status()));
             log("Actual time: " + String(printTime()));
             log("Beacon active: " + String(active ? "true" : "false"));
