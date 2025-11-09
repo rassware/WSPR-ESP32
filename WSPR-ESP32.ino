@@ -14,6 +14,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <config.h>
+#include <bands.h>
 #include <si5351.h>
 #include <ArduinoOTA.h>
 #include "time.h"
@@ -33,8 +34,11 @@ String messageBuffer[MAX_MESSAGES];
 const char *networkName = WIFI_SSID;
 const char *networkPswd = WIFI_PASSWD;
 
+
+
 hw_timer_t *timer = NULL;
-unsigned long freq = FREQUENCY;
+BandKey band = BAND;
+unsigned long freq = bands[band].frequency;
 unsigned long randomFreq = freq;
 char call[6] = CALL_SIGN;
 char loc[5] = LOCATOR;

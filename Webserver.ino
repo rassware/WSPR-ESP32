@@ -14,6 +14,7 @@
 #include <AsyncTCP.h>
 #include <WiFi.h>
 #include <config.h>
+#include <bands.h>
 
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
@@ -111,7 +112,7 @@ static const char *htmlContent PROGMEM = R"(
 \  /\  /\__/ / |   | |\ \      | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
  \/  \/\____/\_|   \_| \_|     \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
    </pre></h3>
-   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, reboot]</h3>
+   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, band {value}, reboot]</h3>
    <input type="text" id="messageInput" placeholder="Type a message..." />
    <button id="sendButton">Send</button>
    <div id="connectionStatus">
@@ -239,7 +240,8 @@ void webserver_setup() {
       Serial.printf("index: %" PRIu64 ", len: %" PRIu64 ", final: %" PRIu8 ", opcode: %" PRIu8 "\n", info->index, info->len, info->final, info->opcode);
       String msg = "";
       String key = "";
-      long value = 0;
+      long longValue = 0;
+      String stringValue = "";
       if (info->final && info->index == 0 && info->len == len) {
         if (info->opcode == WS_TEXT) {
           data[len] = 0;
@@ -264,30 +266,31 @@ void webserver_setup() {
             log("Used freq correction: " + String(correction));
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
             log("Transmission count is " + String(num_transmissions));
+            log("Frequency is " + String(freq));
           } 
           else if (msg == "reboot") {
             log("Rebooting ESP ...");
             ESP.restart();
           }
-          else if (splitAndValidateInt(msg, key, value)) {
+          else if (splitAndValidateInt(msg, key, longValue)) {
             if (key == "trigger") {
-              if (value >= 2 && value <= 60) {
-                trigger_every_x_minutes = value;
-                log("Trigger set every " + String(value) + " minutes ...");
+              if (longValue >= 2 && longValue <= 60) {
+                trigger_every_x_minutes = longValue;
+                log("Trigger set every " + String(trigger_every_x_minutes) + " minutes ...");
               }
               else {
                 log("Trigger must be between 2 and 60 minutes ...");
               }
             }
             else if (key == "correction") {
-              correction = value;
+              correction = longValue;
               si5351_init();
-              log("Correction set to " + String(value));
+              log("Correction set to " + String(correction));
             }
             else if (key == "transmissions") {
-              if (value > 0 && value <= 5) {
-                num_transmissions = value;
-                log("Transmissions set to " + String(value));
+              if (longValue > 0 && longValue <= 5) {
+                num_transmissions = longValue;
+                log("Transmissions set to " + String(num_transmissions));
               }
               else {
                 log("Transmissions count must be between 2 and 5 ...");
@@ -295,6 +298,18 @@ void webserver_setup() {
             }
             else {
               log("Unknown parameter: " + key);
+            }
+          }
+          else if (splitString(msg, key, stringValue)) {
+            if (key == "band") {
+              BandKey bandKey = getBandKeyFromString(stringValue);
+              if (bandKey != BAND_UNKNOWN) {
+                freq = bands[bandKey].frequency;
+                log("Frequency set to " + String(freq));
+              }
+              else {
+                log("Frequency is unknown: " + String(stringValue));
+              }
             }
           }
           else {
@@ -360,4 +375,37 @@ bool splitAndValidateInt(String inputString, String &part1, long &part2) {
 
   part2 = part2Str.toInt();
   return true;
+}
+
+bool splitString(String inputString, String &part1, String &part2) {
+  inputString.trim();
+
+  int spaceIndex = inputString.indexOf(' ');
+  if (spaceIndex == -1) {
+    return false;
+  }
+
+  part1 = inputString.substring(0, spaceIndex);
+  part1.trim();
+  part2 = inputString.substring(spaceIndex);
+  part2.trim();
+
+  if (part2.length() == 0) {
+    return false;
+  }
+
+  return true;
+}
+
+BandKey getBandKeyFromString(const String& bandName) {
+  if (bandName.equalsIgnoreCase("160m")) return BAND_160M;
+  if (bandName.equalsIgnoreCase("80m"))  return BAND_80M;
+  if (bandName.equalsIgnoreCase("40m"))  return BAND_40M;
+  if (bandName.equalsIgnoreCase("30m"))  return BAND_30M;
+  if (bandName.equalsIgnoreCase("20m"))  return BAND_20M;
+  if (bandName.equalsIgnoreCase("17m"))  return BAND_17M;
+  if (bandName.equalsIgnoreCase("15m"))  return BAND_15M;
+  if (bandName.equalsIgnoreCase("12m"))  return BAND_12M;
+  if (bandName.equalsIgnoreCase("10m"))  return BAND_10M;
+  return BAND_UNKNOWN;
 }

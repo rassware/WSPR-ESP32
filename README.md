@@ -26,5 +26,6 @@ There is a status page for the beacon, where all important parameter are visible
 ### version 1.0
  - added more parameter to the config file
  - added validation to trigger value
+ - added band parameter for switch bands
 
 ### Have fun and good DX, 73 DL2RN
