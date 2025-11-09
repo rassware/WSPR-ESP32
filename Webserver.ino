@@ -22,6 +22,8 @@
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
 
+String swVersion = "1.0";
+
 static const char *htmlContent PROGMEM = R"(
 <!DOCTYPE html>
 <html lang="en">
@@ -257,7 +259,7 @@ void webserver_setup() {
             log("Beacon deactivated ...");
           }
           else if (msg == "status") {
-            log("Software version: " + String(SW_VERSION));
+            log("Software version: " + String(swVersion));
             log("SI5351 status: " + String(si5351_get_status()));
             log("Actual time: " + String(printTime()));
             log("Beacon active: " + String(active ? "true" : "false"));
@@ -395,17 +397,4 @@ bool splitString(String inputString, String &part1, String &part2) {
   }
 
   return true;
-}
-
-BandKey getBandKeyFromString(const String& bandName) {
-  if (bandName.equalsIgnoreCase("160m")) return BAND_160M;
-  if (bandName.equalsIgnoreCase("80m"))  return BAND_80M;
-  if (bandName.equalsIgnoreCase("40m"))  return BAND_40M;
-  if (bandName.equalsIgnoreCase("30m"))  return BAND_30M;
-  if (bandName.equalsIgnoreCase("20m"))  return BAND_20M;
-  if (bandName.equalsIgnoreCase("17m"))  return BAND_17M;
-  if (bandName.equalsIgnoreCase("15m"))  return BAND_15M;
-  if (bandName.equalsIgnoreCase("12m"))  return BAND_12M;
-  if (bandName.equalsIgnoreCase("10m"))  return BAND_10M;
-  return BAND_UNKNOWN;
 }

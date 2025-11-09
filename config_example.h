@@ -11,5 +11,4 @@
 #define BAND BAND_10M // wspr on e. g. 10m is between 2812600000 and 2812620000, we are working between 2812605000 and 2812615000, valid values BAND_160M - BAND_10M
 #define POWER 10 // hf power, default is 10 = 10dBm = 0.01W
 #define TRIGGER_EVERY_X_MINUTES 20 // how often should the beacon be sent, valid values between 2 and 60, can be modified via web interface
-#define SW_VERSION "1.0" // software version
 #define NUM_TRANSMISSIONS 2 // count of transmissions per series

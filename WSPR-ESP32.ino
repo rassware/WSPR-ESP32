@@ -17,7 +17,7 @@
 #include <bands.h>
 #include <si5351.h>
 #include <ArduinoOTA.h>
-#include "time.h"
+#include <time.h>
 
 
 #define TONE_SPACING 146  // ~1.46 Hz
@@ -30,12 +30,11 @@ JTEncode jtencode;
 WiFiUDP udp;
 String messageBuffer[MAX_MESSAGES];
 
-// WiFi network name and password:
+// --- WiFi network name and password ---
 const char *networkName = WIFI_SSID;
 const char *networkPswd = WIFI_PASSWD;
 
-
-
+// --- wspr variables for processing ---
 hw_timer_t *timer = NULL;
 BandKey band = BAND;
 unsigned long freq = bands[band].frequency;
@@ -47,12 +46,18 @@ uint8_t dbm = POWER;
 uint8_t tx_buffer[SYMBOL_COUNT];
 bool warmup = false;
 bool active = true;
+
+// --- webserver variables ---
 uint8_t localPort = 8888;  // local port to listen for UDP packets
-uint8_t trigger_every_x_minutes = TRIGGER_EVERY_X_MINUTES; // how often should the beacon be sent
-uint8_t num_transmissions = NUM_TRANSMISSIONS;
 uint8_t messageStart = 0;   // index of the oldest message
 uint8_t messageCount = 0;   // count of messages
 
+// --- status variables for triggering ---
+uint8_t trigger_every_x_minutes = TRIGGER_EVERY_X_MINUTES; // how often should the beacon be sent
+uint8_t num_transmissions = NUM_TRANSMISSIONS;
+uint8_t current_transmission = 0;
+bool in_series = false;
+time_t next_start_time = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -112,11 +117,6 @@ char *printTime() {
   return buf;
 }
 
-// --- status variables ---
-uint8_t current_transmission = 0;
-bool in_series = false;
-time_t next_start_time = 0;
-
 void loop() {
   struct tm timeinfo;
   getLocalTime(&timeinfo);
@@ -159,7 +159,7 @@ void loop() {
 
     log("Transmission #" + String(current_transmission) + " finished.");
 
-    // prepare next transmission
+    // ---------- prepare next transmission ----------
     if (current_transmission < num_transmissions) {
       next_start_time += (2 * 60);
       randomFreq = freq + getRandom5000to15000();
