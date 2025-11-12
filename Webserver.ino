@@ -45,6 +45,10 @@ static const char *htmlContent PROGMEM = R"(
           text-size-adjust: 100%;
         }
 
+        a {
+          color: limegreen;
+        }
+
         #messages {
           margin-top: 20px;
         }
@@ -115,8 +119,17 @@ static const char *htmlContent PROGMEM = R"(
  \/  \/\____/\_|   \_| \_|     \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
    </pre></h3>
    <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, band {value}, reboot]</h3>
-   <input type="text" id="messageInput" placeholder="Type a message..." />
-   <button id="sendButton">Send</button>
+   <h3>
+      Propagation Info: [
+      <a href='https://dereferer.me/?https://www.iap-kborn.de/fileadmin/user_upload/MAIN-abteilung/radar/Radars/Ionosonde/Plots/LATEST.PNG' target='_blank'>Juliusruh</a> | 
+      <a href='https://dereferer.me/?https://propagation.dr2w.de/dxprop.php?area=europe&band=10M&mode=1&time=utc' target='_blank'>DR2W</a> | 
+      <a href='https://dereferer.me/?https://www.wm7d.net/hamradio/solar/' target='_blank'>WM7D</a> | 
+      <a href='https://dereferer.me/?https://dxmap.f5uii.net/' target='_blank'>DXMap</a> ]
+   </h3>
+   <div>
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button id="sendButton">Send</button>
+   </div>
    <div id="connectionStatus">
    </div>
    <div id="messages">
