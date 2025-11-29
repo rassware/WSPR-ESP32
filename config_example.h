@@ -12,3 +12,7 @@
 #define POWER 10 // hf power, default is 10 = 10dBm = 0.01W
 #define TRIGGER_EVERY_X_MINUTES 20 // how often should the beacon be sent, valid values between 2 and 60, can be modified via web interface
 #define NUM_TRANSMISSIONS 2 // count of transmissions per series
+#define MODE WSPR; // beacon mode at startup
+#define CW_MESSAGE "Insert your CW message";
+#define CW_DOT_DURATION 85; // Morse code typing speed in milliseconds - higher number means slower typing
+#define CW_FREQ 2823500000ULL; // Fix frequency for CW beacon

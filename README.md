@@ -23,6 +23,9 @@ The output power is around 10 mW.
 There is a status page for the beacon, where all important parameter are visible and changeable over web socket.
 
 ## versions
+### version 1.1
+ - added cw mode
+
 ### version 1.0
  - added more parameter to the config file
  - added validation to trigger value
