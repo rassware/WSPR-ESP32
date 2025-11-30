@@ -18,6 +18,7 @@
 #include <si5351.h>
 #include <ArduinoOTA.h>
 #include <time.h>
+#include <modes.h>
 
 
 #define TONE_SPACING 146  // ~1.46 Hz
@@ -58,6 +59,9 @@ uint8_t num_transmissions = NUM_TRANSMISSIONS;
 uint8_t current_transmission = 0;
 bool in_series = false;
 time_t next_start_time = 0;
+
+ModeKey mode = MODE;
+String cw_message = CW_MESSAGE;
 
 void setup() {
   Serial.begin(9600);
@@ -122,8 +126,6 @@ void loop() {
   getLocalTime(&timeinfo);
   time_t now = mktime(&timeinfo);
 
-  randomFreq = freq + getRandom5000to15000();
-
   // ---------- start of series ----------
   if (!in_series &&
       timeinfo.tm_min % trigger_every_x_minutes == 0 &&
@@ -153,16 +155,17 @@ void loop() {
     warmup = false;
 
     log("Start of Transmission #" + String(current_transmission));
-    log("Frequency: " + String(randomFreq));
-
-    encode();
+    
+    switch (mode) {
+      case WSPR: wspr_transmission(); break;
+      case CW: cw_transmission(); break;
+    }
 
     log("Transmission #" + String(current_transmission) + " finished.");
 
     // ---------- prepare next transmission ----------
     if (current_transmission < num_transmissions) {
       next_start_time += (2 * 60);
-      randomFreq = freq + getRandom5000to15000();
     } else {
       in_series = false;
       si5351.set_clock_pwr(SI5351_CLK0, 0);
@@ -172,6 +175,30 @@ void loop() {
 
   ArduinoOTA.handle();
   delay(500);
+}
+
+void wspr_transmission() {
+  randomFreq = freq + getRandom5000to15000();
+  si5351.set_freq(randomFreq, SI5351_CLK0);
+  log("Sending WSPR beacon on frequency: " + String(randomFreq));
+  encode();
+  log("WSPR beacon sent on frequency: " + String(randomFreq));
+}
+
+void cw_transmission() {
+  unsigned long cwFreq = CW_FREQ; 
+  log("Sending CW beacon on frequency: " + String(cwFreq));
+  si5351.set_freq(cwFreq, SI5351_CLK0);
+  cw_string_proc(cw_message);
+  // Duration of the break at the end before the long signal - in milliseconds
+  delay(500);                        
+  cw(true);
+  // Duration of the long signal at the end - in milliseconds
+  delay(5000);                       
+  cw(false);
+  // Duration of the pause at the end after the long signal - in milliseconds
+  delay(1000);                       
+  log("CW beacon sent on frequency: " + String(cwFreq));
 }
 
 void connectToWiFi(const char *ssid, const char *pwd) {
@@ -280,4 +307,8 @@ int getRandom5000to15000() {
     seeded = true;
   }
   return random(5000, 15000);
+}
+
+int getCWoffset() {
+  return 195500;
 }

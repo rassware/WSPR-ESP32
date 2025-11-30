@@ -22,14 +22,14 @@
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
 
-String swVersion = "1.0";
+String swVersion = "1.1";
 
 static const char *htmlContent PROGMEM = R"(
 <!DOCTYPE html>
 <html lang="en">
       
 <head>
-    <title>DL2RN | WSPR-ESP32 Beacon</title>
+    <title>DL2RN | ESP32 Beacon</title>
     <link rel="icon" href="data:,">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -111,14 +111,14 @@ static const char *htmlContent PROGMEM = R"(
  ______ ______ ______ ______  | | | | |      / /  |    /| . ` |  ______ ______ ______ ______      
 |______|______|______|______| | |/ /| |____./ /___| |\ \| |\  | |______|______|______|______|     
                               |___/ \_____/\_____/\_| \_\_| \_/                                   
- _    _ _________________       _____ ___________ _____  _____  ______                            
-| |  | /  ___| ___ \ ___ \     |  ___/  ___| ___ \____ |/ __  \ | ___ \                           
-| |  | \ `--.| |_/ / |_/ /_____| |__ \ `--.| |_/ /   / /`' / /' | |_/ / ___  __ _  ___ ___  _ __  
-| |/\| |`--. \  __/|    /______|  __| `--. \  __/    \ \  / /   | ___ \/ _ \/ _` |/ __/ _ \| '_ \ 
-\  /\  /\__/ / |   | |\ \      | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
- \/  \/\____/\_|   \_| \_|     \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
+             _____ ___________ _____  _____  ______                            
+            |  ___/  ___| ___ \____ |/ __  \ | ___ \                           
+            | |__ \ `--.| |_/ /   / /`' / /' | |_/ / ___  __ _  ___ ___  _ __  
+            |  __| `--. \  __/    \ \  / /   | ___ \/ _ \/ _` |/ __/ _ \| '_ \ 
+            | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
+            \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
    </pre></h3>
-   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, band {value}, reboot]</h3>
+   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, band {value}, reboot, mode {value}, cw_dot_duration  {value}, cw_message {value}]</h3>
    <h3>
       Propagation Info: [
       <a href='https://dereferer.me/?https://www.iap-kborn.de/fileadmin/user_upload/MAIN-abteilung/radar/Radars/Ionosonde/Plots/LATEST.PNG' target='_blank'>Juliusruh</a> | 
@@ -276,12 +276,15 @@ void webserver_setup() {
             log("SI5351 status: " + String(si5351_get_status()));
             log("Actual time: " + String(printTime()));
             log("Beacon active: " + String(active ? "true" : "false"));
+            log("Mode is " + String(getModeName(mode)));
             log("Used call sign: " + String(CALL_SIGN));
             log("Used locator: " + String(LOCATOR));
             log("Used freq correction: " + String(correction));
             log("Beacon trigger every " + String(trigger_every_x_minutes) + " minutes");
             log("Transmission count is " + String(num_transmissions));
             log("Frequency is " + String(freq));
+            log("CW dot duration (ms) is " + String(cw_dot_duration));
+            log("CW message is '" + String(cw_message) + "'");
           } 
           else if (msg == "reboot") {
             log("Rebooting ESP ...");
@@ -311,6 +314,10 @@ void webserver_setup() {
                 log("Transmissions count must be between 2 and 5 ...");
               }
             }
+            else if (key == "cw_dot_duration") {
+              cw_dot_duration = longValue;
+              log("CW dot duration set to " + String(cw_dot_duration));
+            }
             else {
               log("Unknown parameter: " + key);
             }
@@ -325,6 +332,14 @@ void webserver_setup() {
               else {
                 log("Frequency is unknown: " + String(stringValue));
               }
+            }
+            else if (key == "mode") { 
+              mode = getModeKeyFromString(stringValue);
+              log("Mode set to " + String(getModeName(mode)) + " ...");
+            }
+            else if (key == "cw_message") { 
+              cw_message = stringValue;
+              log("CW message set to '" + String(cw_message) + "' ...");
             }
           }
           else {
