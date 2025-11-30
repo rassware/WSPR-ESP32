@@ -118,7 +118,7 @@ static const char *htmlContent PROGMEM = R"(
             | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
             \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
    </pre></h3>
-   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, band {value}, reboot, mode {value}, cw_dot_duration  {value}]</h3>
+   <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, band {value}, reboot, mode {value}, cw_dot_duration  {value}, cw_message {value}]</h3>
    <h3>
       Propagation Info: [
       <a href='https://dereferer.me/?https://www.iap-kborn.de/fileadmin/user_upload/MAIN-abteilung/radar/Radars/Ionosonde/Plots/LATEST.PNG' target='_blank'>Juliusruh</a> | 
@@ -284,6 +284,7 @@ void webserver_setup() {
             log("Transmission count is " + String(num_transmissions));
             log("Frequency is " + String(freq));
             log("CW dot duration (ms) is " + String(cw_dot_duration));
+            log("CW message is '" + String(cw_message) + "'");
           } 
           else if (msg == "reboot") {
             log("Rebooting ESP ...");
@@ -335,6 +336,10 @@ void webserver_setup() {
             else if (key == "mode") { 
               mode = getModeKeyFromString(stringValue);
               log("Mode set to " + String(getModeName(mode)) + " ...");
+            }
+            else if (key == "cw_message") { 
+              cw_message = stringValue;
+              log("CW message set to '" + String(cw_message) + "' ...");
             }
           }
           else {
