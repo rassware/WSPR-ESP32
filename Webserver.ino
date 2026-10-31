@@ -37,7 +37,8 @@ static const char *htmlContent PROGMEM = R"(
           background-color: black;
           color: limegreen;
           font-family: monospace;
-          padding: 20px;
+          padding: clamp(5px, 2vw, 20px);
+          margin: 0;
         }
 
         html {
@@ -82,6 +83,19 @@ static const char *htmlContent PROGMEM = R"(
           text-align: center;
         }
 
+        .banner {
+          width: 100%;
+          overflow: hidden;
+        }
+
+        .banner pre {
+          font-size: min(1.3vw, 16px);
+          line-height: 1.1;
+          white-space: pre;
+          text-align: left;
+          margin: 0;
+       }
+
         .message {
           opacity: 0;
           animation: fadeIn 0.8s forwards;
@@ -104,20 +118,24 @@ static const char *htmlContent PROGMEM = R"(
 
 <body>
    <div id="connectionStatus">Disconnected</div>
-   <h3><pre>
+   <h3>
+   <div class="banner">
+<pre>
                               ______ _      _____ ______ _   _                                    
  ______ ______ ______ ______  |  _  \ |    / __  \| ___ \ \ | |  ______ ______ ______ ______      
 |______|______|______|______| | | | | |    `' / /'| |_/ /  \| | |______|______|______|______|     
  ______ ______ ______ ______  | | | | |      / /  |    /| . ` |  ______ ______ ______ ______      
 |______|______|______|______| | |/ /| |____./ /___| |\ \| |\  | |______|______|______|______|     
                               |___/ \_____/\_____/\_| \_\_| \_/                                   
-             _____ ___________ _____  _____  ______                            
-            |  ___/  ___| ___ \____ |/ __  \ | ___ \                           
-            | |__ \ `--.| |_/ /   / /`' / /' | |_/ / ___  __ _  ___ ___  _ __  
-            |  __| `--. \  __/    \ \  / /   | ___ \/ _ \/ _` |/ __/ _ \| '_ \ 
-            | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |
-            \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|
-   </pre></h3>
+             _____ ___________ _____  _____  ______                                               
+            |  ___/  ___| ___ \____ |/ __  \ | ___ \                                              
+            | |__ \ `--.| |_/ /   / /`' / /' | |_/ / ___  __ _  ___ ___  _ __                     
+            |  __| `--. \  __/    \ \  / /   | ___ \/ _ \/ _` |/ __/ _ \| '_ \                    
+            | |___/\__/ / |   .___/ /./ /___ | |_/ /  __/ (_| | (_| (_) | | | |                   
+            \____/\____/\_|   \____/ \_____/ \____/ \___|\__,_|\___\___/|_| |_|                   
+</pre>
+   </div>
+   </h3>
    <h3>Commands: [start, stop, status, trigger {value}, correction {value}, transmissions {value}, band {value}, reboot, mode {value}, cw_dot_duration  {value}, cw_message {value}]</h3>
    <h3>
       Propagation Info: [

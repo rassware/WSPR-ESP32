@@ -1,5 +1,8 @@
 # WSPR-ESP32 Beacon
 
+![Web Console](images/webconsole.png)
+![Hardware](images/wspr_bake.jpg)
+
 ## description
 This project creates a simple WSPR beacon with only a few components.
 
